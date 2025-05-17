@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg">
+        <h1 class="text-3xl font-bold mb-6 text-center">🔐 Password Generator</h1>
+        
+        <div class="mb-4">
+            <label for="lengthSlider" class="block text-sm font-medium mb-1">Password Length: <span id="lengthValue" class="font-bold">16</span></label>
+            <input type="range" id="lengthSlider" min="4" max="32" value="16" class="w-full accent-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="uppercaseCheckbox" checked class="accent-blue-500">
+                <span>Uppercase</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="lowercaseCheckbox" checked class="accent-blue-500">
+                <span>Lowercase</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="numbersCheckbox" checked class="accent-blue-500">
+                <span>Numbers</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="symbolsCheckbox" checked class="accent-blue-500">
+                <span>Symbols</span>
+            </label>
+        </div>
+
+        <div class="relative mb-4">
+            <input type="text" id="passwordOutput" readonly class="w-full p-3 rounded bg-gray-700 pr-12 font-mono">
+            <button id="copyButton" class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-sm">Copy</button>
+        </div>
+
+        <button id="generateButton" class="w-full bg-blue-600 hover:bg-blue-700 transition p-3 rounded font-semibold">Generate Password</button>
+
+        <div id="strengthIndicator" class="mt-4 text-sm text-center font-semibold"></div>
+    </div>
+
+    <script>
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValue = document.getElementById('lengthValue');
+        const uppercaseCheckbox = document.getElementById('uppercaseCheckbox');
+        const lowercaseCheckbox = document.getElementById('lowercaseCheckbox');
+        const numbersCheckbox = document.getElementById('numbersCheckbox');
+        const symbolsCheckbox = document.getElementById('symbolsCheckbox');
+        const passwordOutput = document.getElementById('passwordOutput');
+        const generateButton = document.getElementById('generateButton');
+        const copyButton = document.getElementById('copyButton');
+        const strengthIndicator = document.getElementById('strengthIndicator');
+
+        // Update slider value display
+        lengthSlider.addEventListener('input', () => {
+            lengthValue.textContent = lengthSlider.value;
+        });
+
+        // Password strength meter
+        function updateStrengthIndicator(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[a-z]/.test(password)) score++;
+            if (/\d/.test(password)) score++;
+            if (/[\W_]/.test(password)) score++;
+
+            const levels = ["Very Weak", "Weak", "Moderate", "Strong", "Very Strong"];
+            const colors = ["text-red-500", "text-orange-500", "text-yellow-400", "text-green-500", "text-green-400"];
+            const index = Math.min(score, levels.length - 1);
+
+            strengthIndicator.textContent = `Strength: ${levels[index]}`;
+            strengthIndicator.className = `mt-4 text-sm text-center font-semibold ${colors[index]}`;
+        }
+
+        // Generate password using backend
+        async function generatePasswordRequest() {
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    length: parseInt(lengthSlider.value),
+                    uppercase: uppercaseCheckbox.checked,
+                    lowercase: lowercaseCheckbox.checked,
+                    numbers: numbersCheckbox.checked,
+                    symbols: symbolsCheckbox.checked
+                })
+            });
+            const data = await response.json();
+            passwordOutput.value = data.password;
+            updateStrengthIndicator(data.password);
+        }
+
+        generateButton.addEventListener('click', () => {
+            generatePasswordRequest();
+        });
+
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(passwordOutput.value);
+            copyButton.textContent = "Copied!";
+            setTimeout(() => copyButton.textContent = "Copy", 1000);
+        });
+    </script>
+</body>
+</html>
